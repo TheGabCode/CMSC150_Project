@@ -37,21 +37,36 @@ checkBottomRow <- function(tableau){
   return(stillNegative)
 }
 
+ratio <- function(a,b){
+  return(a/b)
+}
 
 simplex <- function(tableau){
   while(checkBottomRow(tableau) == T){
     min = 0
     minRow = 0
     minCol = 0
+    pivotElement = 0
     for(i in 1:(ncol(tableau)-1)){
       if(min > tableau[nrow(tableau),i]){
         min <-tableau[nrow(tableau),i]
         minCol <- i
       }
     }
-    print(min)
-    print(minCol)
+    minRatio = ratio(tableau[1,ncol(tableau)],tableau[1,minCol]) ##initial ratio
+    minRow = 1
+    for(i in 2:(nrow(tableau)-1)){
+      if(ratio(tableau[i,ncol(tableau)],tableau[i,minCol]) < minRatio && ratio(tableau[i,ncol(tableau)],tableau[i,minCol]) > 0){
+        minRatio <- ratio(tableau[i,ncol(tableau)],tableau[i,minCol])
+        minRow <- i
+      }
+    }
+  pivotElement <- tableau[minRow,minCol]  
+  break
   }
+  print(pivotElement)
+  print(minRatio)
+  print(minRow)
   
   
 }
