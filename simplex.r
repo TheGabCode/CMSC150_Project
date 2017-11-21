@@ -61,12 +61,29 @@ simplex <- function(tableau){
         minRow <- i
       }
     }
-  pivotElement <- tableau[minRow,minCol]  
+  pivotElement <- tableau[minRow,minCol]
+  if(pivotElement != 1){
+    #normalize
+    for(i in 1:(ncol(tableau))){
+      tableau[minRow,i] <- tableau[minRow,i]/pivotElement
+    }
+  }
+  
+  
+  
+  for(i in 1:(nrow(tableau))){
+    if(i != minRow){
+      for(j in 1:(ncol(tableau))){
+        tableau[i,j] <- tableau[i,j] - (tableau[i,minCol] * tableau[minRow,j])
+      }      
+    }
+
+  }
   break
   }
   print(pivotElement)
   print(minRatio)
   print(minRow)
   
-  
+  print(tableau)
 }
