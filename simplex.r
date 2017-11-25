@@ -1,26 +1,16 @@
-tableau = matrix(
-  c(
-    7,11,1,0,0,0,0,77,10,8,0,1,0,0,0,80,1,0,0,0,1,0,0,9,0,1,0,0,0,1,0,6,-150,-175,0,0,0,0,1,0
-  ),
-  nrow = 5,
-  ncol = 8,
-  byrow = T
-)
-setUpTableau <- function(maximize){
-  z <- function(x,y) 150*x + 175*y
-  objective_fxn <- "p = (1/2)*x + 3*y + 1*z + 4*w"
-  constraints = list()
-  slacks = list()
-  constraints[1] <- "1*x + 1*y + 1*z + 1*w <= 40"
+objective_fxn <- "p = (1/2)*x + 3*y + 1*z + 4*w"
+constraints = list()
+constraints[1] <- "1*x + 1*y + 1*z + 1*w <= 40"
+constraints[2] <- "2*x + 1*y - 1*z - 1*w >= 10"
+constraints[3] <- "1*w - 1*y >= 12"
 
-  constraints[2] <- "2*x + 1*y - 1*z - 1*w >= 10"
-  constraints[3] <- "1*w - 1*y >= 12"
-  
+setUpTableau <- function(objective_fxn,constraints,maximize){
+  z <- function(x,y) 150*x + 175*y
+  slacks = list()
   for(i in 1:length(constraints)){
     constraints[i] <- gsub("-","+-",constraints[i])
     constraints[i] <- gsub(" ","",constraints[i])
   }
-  #print(constraints)
   countCharOccurrences <- function(char, s) {
     s2 <- gsub(char,"",s)
     return (nchar(s) - nchar(s2))
@@ -29,7 +19,6 @@ setUpTableau <- function(maximize){
   for(i in 1:length(constraints)){
     slacks[i] <- paste("s",i,sep="")
   } 
-  
   #fix constraints
   for(i in 1:length(constraints)){
     if(grepl("<=",constraints[i])){
@@ -144,16 +133,29 @@ checkBottomRow <- function(tableau){
   return(stillNegative)
 }
 
+checkBottomRowNegative <- function(tableau){
+  stillPositive <- F #still positive exists
+  for(i in 1:(ncol(tableau)-1)){
+    if(tableau[nrow(tableau),i] > 0){
+      stillPositive <- T
+      break
+    }
+  }
+  return(stillPositive)
+}
+
 ratio <- function(a,b){
   return(a/b)
 }
 
-simplex <- function(tableau){
-  while(checkBottomRow(tableau)){
+simplex <- function(tableau,maximize){
+  mat <- list()
+  count <- 1
+  while(T){
     if(checkBottomRow(tableau) == F){
       break
     }
-    print(tableau)
+    #print(tableau)
     min = 0
     minRow = 0
     minCol = 0
@@ -162,48 +164,62 @@ simplex <- function(tableau){
       if(min > tableau[nrow(tableau),i]){
         min <-tableau[nrow(tableau),i]
         minCol <- i
-
+        
       }
     }
-    print(paste("min element col",min))
-    print(paste("Col",minCol))
+    #print(paste("min element col",min))
+    #print(paste("Col",minCol))
     minRatio = Inf #initial ratio
     minRow = 0
     
     for(i in 1:(nrow(tableau)-1)){
-      tr = ratio(tableau[i,ncol(tableau)],tableau[i,minCol])
-      if(tr > 0 && tr < minRatio){
-        minRatio = tr
-        minRow = i
+      if(tableau[i,minCol] != 0 && ratio(tableau[i,ncol(tableau)],tableau[i,minCol]) > 0 && minRatio == 0){
+        minRatio <- ratio(tableau[i,ncol(tableau)],tableau[i,minCol])
+        minRow <- i
+      }
+      else if(tableau[i,minCol] != 0 && ratio(tableau[i,ncol(tableau)],tableau[i,minCol]) > 0 && ratio(tableau[i,ncol(tableau)],tableau[i,minCol]) < minRatio){
+        minRatio <- ratio(tableau[i,ncol(tableau)],tableau[i,minCol])
+        minRow <- i
       }
     }
     
-    print(paste("min row",minRow))
+    #print(paste("min row",minRow))
     
     
     pivotElement <- tableau[minRow,minCol]
-    print(paste("pivot element",pivotElement))
+    #print(paste("pivot element",pivotElement))
     if(pivotElement != 1){
       #normalize
-       for(i in 1:(ncol(tableau))){
+      for(i in 1:(ncol(tableau))){
         tableau[minRow,i] <- tableau[minRow,i]/pivotElement
       }
     }
     #print(tableau)
     replace = matrix(nrow = 1, ncol=ncol(tableau))
-
+    
     for(i in 1:(nrow(tableau))){
       if(i != minRow){
         for(j in 1:ncol(tableau)){
           answer <- tableau[i,j] - (tableau[i,minCol] * tableau[minRow,j])
           replace[1,j] <- answer
         }
-      tableau[i,] <- replace[1,]
-      }
+        tableau[i,] <- replace[1,]
+     }
     }
     
-    
-  #print(tableau)
+    mat[[count]] <- tableau
+    count <- count + 1
+    print(tableau)
   }
-  print(tableau)
+  #print(tableau)
+  return(mat)
 }
+
+mainSimplex <- function(objective_fxn,constraints,maximize){
+  t<-setUpTableau(objective_fxn,constraints,maximize)
+  finalTableau <- simplex(t)
+  return(finalTableau)
+  
+}
+
+m <- mainSimplex(objective_fxn,constraints,F)
